@@ -1,8 +1,10 @@
 import Clutter from 'gi://Clutter';
+import Cogl from 'gi://Cogl';
+import GdkPixbuf from 'gi://GdkPixbuf';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Gio from 'gi://Gio';
-import Pango from 'gi://Pango';
+import Soup from 'gi://Soup';
 import St from 'gi://St';
 
 import {Extension, gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
@@ -16,9 +18,27 @@ const IMAGE_EXTENSIONS = new Set([
 ]);
 
 const BACKGROUND_SCHEMA = 'org.gnome.desktop.background';
+const GITHUB_PROFILE_URI = 'https://github.com/4Pulcher';
+const GITHUB_AVATAR_URI = 'https://github.com/4Pulcher.png?size=256';
+const PREVIEW_SIZE = 256;
 
 const SLIDESHOW_CHANGED = 'changed';
 const SLIDESHOW_ERROR = 'error';
+
+const PROFILES = [
+    {id: 'user', label: _('User'), key: 'user-directory'},
+    {id: 'system', label: _('System'), key: 'system-directory'},
+];
+
+const SCALING_OPTIONS = [
+    ['none', _('None')],
+    ['wallpaper', _('Wallpaper (tile)')],
+    ['centered', _('Centered')],
+    ['scaled', _('Scaled')],
+    ['stretched', _('Stretched')],
+    ['zoom', _('Zoom')],
+    ['spanned', _('Spanned')],
+];
 
 function expandPath(path) {
     if (!path || path.length === 0)
@@ -32,6 +52,33 @@ function expandPath(path) {
 
 function baseName(path) {
     return path?.split('/').filter(p => p.length > 0).pop() ?? '';
+}
+
+function pixbufToContent(pixbuf) {
+    const image = new Clutter.Image();
+    const format = pixbuf.get_has_alpha()
+        ? Cogl.PixelFormat.RGBA_8888
+        : Cogl.PixelFormat.RGB_888;
+    image.set_data(
+        pixbuf.get_pixels(),
+        format,
+        pixbuf.get_width(),
+        pixbuf.get_height(),
+        pixbuf.get_rowstride());
+    return image;
+}
+
+function imageGravity(options) {
+    switch (options) {
+    case 'zoom':
+    case 'spanned':
+    case 'wallpaper':
+        return Clutter.ContentGravity.COVER;
+    case 'stretched':
+        return Clutter.ContentGravity.FILL;
+    default:
+        return Clutter.ContentGravity.CONTAIN;
+    }
 }
 
 const Slideshow = GObject.registerClass({
@@ -70,12 +117,21 @@ const Slideshow = GObject.registerClass({
         return this._index >= 0 ? this._files[this._index] : null;
     }
 
+    get profile() {
+        return this._settings.get_string('active-profile');
+    }
+
     get directory() {
-        return expandPath(this._settings.get_string('directory'));
+        const profile = PROFILES.find(p => p.id === this.profile) ?? PROFILES[0];
+        return expandPath(this._settings.get_string(profile.key));
     }
 
     get interval() {
         return this._settings.get_uint('interval-seconds');
+    }
+
+    get pictureOptions() {
+        return this._settings.get_string('picture-options');
     }
 
     start() {
@@ -117,6 +173,7 @@ const Slideshow = GObject.registerClass({
         }
         if (this._index >= files.length)
             this._index = files.length - 1;
+        this.emit(SLIDESHOW_CHANGED);
     }
 
     next() {
@@ -125,6 +182,18 @@ const Slideshow = GObject.registerClass({
 
     previous() {
         this._step(-1);
+    }
+
+    randomize() {
+        if (this._files.length === 0)
+            return;
+        let next = this._index;
+        if (this._files.length > 1) {
+            while (next === this._index)
+                next = Math.floor(Math.random() * this._files.length);
+        }
+        this._index = next;
+        this._applyCurrent();
     }
 
     setPaused(paused) {
@@ -144,25 +213,19 @@ const Slideshow = GObject.registerClass({
     }
 
     _applyPictureOptions() {
-        const options = this._settings.get_string('picture-options');
-        this._background.set_string('picture-options', options);
+        this._background.set_string('picture-options', this.pictureOptions);
     }
 
     _step(direction) {
         if (this._files.length === 0)
-            return false;
+            return;
 
         if (this._settings.get_boolean('shuffle') && this._files.length > 1) {
-            let next = this._index;
-            while (next === this._index)
-                next = Math.floor(Math.random() * this._files.length);
-            this._index = next;
-        } else {
-            this._index = (this._index + direction + this._files.length) % this._files.length;
+            this.randomize();
+            return;
         }
-
+        this._index = (this._index + direction + this._files.length) % this._files.length;
         this._applyCurrent();
-        return true;
     }
 
     _applyCurrent() {
@@ -234,6 +297,111 @@ const Slideshow = GObject.registerClass({
     }
 });
 
+const WallpaperPreview = GObject.registerClass(
+class WallpaperPreview extends St.Widget {
+    _init(slideshow) {
+        super._init({
+            width: PREVIEW_SIZE,
+            height: PREVIEW_SIZE,
+            x_align: Clutter.ActorAlign.CENTER,
+            style: 'background-color: rgb(25, 25, 25);'
+                + 'border: 1px solid rgba(255, 255, 255, 0.15);'
+                + 'border-radius: 8px;',
+        });
+        this._slideshow = slideshow;
+        this._path = null;
+        this._loadToken = 0;
+        this.connectObject(SLIDESHOW_CHANGED, () => this.update(), this);
+        this.update();
+    }
+
+    update() {
+        const path = this._slideshow.currentPath;
+        if (path === this._path)
+            return;
+        this._path = path;
+        if (!path) {
+            this.content = null;
+            return;
+        }
+        const token = ++this._loadToken;
+        const file = Gio.File.new_for_path(path);
+        GdkPixbuf.Pixbuf.new_from_file_at_size_async(file, PREVIEW_SIZE * 2, PREVIEW_SIZE * 2, null,
+            (source, result) => {
+                if (token !== this._loadToken)
+                    return;
+                try {
+                    const pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size_async_finish(result);
+                    this.content = pixbufToContent(pixbuf);
+                    this.content_gravity = imageGravity(this._slideshow.pictureOptions);
+                } catch (error) {
+                    console.warn(`[BG Slider] preview failed: ${error.message}`);
+                }
+            });
+    }
+});
+
+const AboutAvatar = GObject.registerClass(
+class AboutAvatar extends St.Widget {
+    _init() {
+        super._init({
+            width: PREVIEW_SIZE,
+            height: PREVIEW_SIZE,
+            x_align: Clutter.ActorAlign.CENTER,
+            style: 'background-color: rgb(35, 35, 35);'
+                + 'border: 1px solid rgba(255, 255, 255, 0.2);'
+                + 'border-radius: 8px;',
+        });
+        this._fallbackAvatar();
+        this._loadAvatar();
+    }
+
+    _loadAvatar() {
+        let message;
+        try {
+            message = Soup.Message.new('GET', GITHUB_AVATAR_URI);
+        } catch {
+            return;
+        }
+        if (!message)
+            return;
+
+        const session = new Soup.Session({timeout: 15});
+        session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null, (source, result) => {
+            try {
+                const bytes = source.send_and_read_finish(result);
+                if (message.get_status() !== Soup.Status.OK || !bytes) {
+                    this._fallbackAvatar();
+                    return;
+                }
+                const stream = Gio.MemoryStream.new_from_bytes(bytes);
+                GdkPixbuf.Pixbuf.new_from_stream_async(stream, null, (pixbufSource, pixbufResult) => {
+                    try {
+                        const pixbuf = GdkPixbuf.Pixbuf.new_from_stream_async_finish(pixbufResult);
+                        this.content = pixbufToContent(pixbuf);
+                        this.content_gravity = Clutter.ContentGravity.COVER;
+                        this.remove_child(this._fallbackIcon);
+                    } catch {
+                        this._fallbackAvatar();
+                    }
+                });
+            } catch {
+                this._fallbackAvatar();
+            }
+        });
+    }
+
+    _fallbackAvatar() {
+        this._fallbackIcon = new St.Icon({
+            icon_name: 'avatar-default-symbolic',
+            icon_size: 128,
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        this.add_child(this._fallbackIcon);
+    }
+});
+
 const Indicator = GObject.registerClass(
 class Indicator extends PanelMenu.Button {
     _init(extension) {
@@ -247,162 +415,135 @@ class Indicator extends PanelMenu.Button {
         }));
 
         this.setMenu(new PopupMenu.PopupMenu(this, 0.0, St.Side.TOP, 0));
-        this.menu.connect('open-state-changed', () => this._sync());
+        this.menu.connect('open-state-changed', (_, open) => {
+            if (open)
+                this._sync();
+        });
+        this._extension.slideshow.connectObject(SLIDESHOW_CHANGED, () => this._sync(), this);
+
         this._buildMenu();
         this._sync();
     }
 
-    vfunc_event(event) {
-        if (event.type() === Clutter.EventType.BUTTON_PRESS) {
-            const button = event.get_button();
-            if (button === Clutter.BUTTON_SECONDARY)
-                this.menu.toggle();
-            else if (button === Clutter.BUTTON_PRIMARY)
-                this._extension.showMainDialog();
-        }
-        return Clutter.EVENT_PROPAGATE;
-    }
-
     _buildMenu() {
+        const settings = this._extension.settings;
         const slideshow = this._extension.slideshow;
 
-        const header = new PopupMenu.PopupMenuItem(_('BG Slider'), {reactive: false});
-        header.label.style = 'font-weight: bold;';
-        this.menu.addMenuItem(header);
-
-        this._runSwitch = new PopupMenu.PopupSwitchMenuItem(_('Slideshow running'), true);
-        this._runSwitch.connect('toggled', (item, state) => slideshow.setPaused(!state));
-        this.menu.addMenuItem(this._runSwitch);
-
-        this._nextItem = new PopupMenu.PopupMenuItem(_('Next Wallpaper'));
-        this._nextItem.connect('activate', () => slideshow.next());
-        this.menu.addMenuItem(this._nextItem);
-
-        this._previousItem = new PopupMenu.PopupMenuItem(_('Previous Wallpaper'));
-        this._previousItem.connect('activate', () => slideshow.previous());
-        this.menu.addMenuItem(this._previousItem);
+        this._profileItems = new Map();
+        for (const profile of PROFILES) {
+            const item = new PopupMenu.PopupMenuItem(profile.label);
+            item.connect('activate', () => settings.set_string('active-profile', profile.id));
+            this._profileItems.set(profile.id, item);
+            this.menu.addMenuItem(item);
+        }
 
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-        const mainMenuItem = new PopupMenu.PopupMenuItem(_('Main Menu\u2026'));
-        mainMenuItem.connect('activate', () => this._extension.showMainDialog());
-        this.menu.addMenuItem(mainMenuItem);
-
-        const settingsItem = new PopupMenu.PopupMenuItem(_('Settings\u2026'));
-        settingsItem.connect('activate', () => this._extension.openPrefs());
-        this.menu.addMenuItem(settingsItem);
-
-        const aboutItem = new PopupMenu.PopupMenuItem(_('About'));
-        aboutItem.connect('activate', () => this._extension.showAboutDialog());
-        this.menu.addMenuItem(aboutItem);
-    }
-
-    _sync() {
-        if (!this._runSwitch)
-            return;
-        const {slideshow} = this._extension;
-        this._runSwitch.setToggleState(!slideshow.paused);
-    }
-});
-
-const MainMenuDialog = GObject.registerClass(
-class MainMenuDialog extends ModalDialog.ModalDialog {
-    _init(extension) {
-        super._init({destroyOnClose: false});
-
-        this._extension = extension;
-        const slideshow = extension.slideshow;
-
-        const box = new St.BoxLayout({
-            vertical: true,
-            style: 'width: 420px; spacing: 12px;',
+        const previewItem = new PopupMenu.PopupBaseMenuItem({
+            reactive: false,
+            can_focus: false,
+            style: 'padding: 4px 12px;',
         });
+        this._preview = new WallpaperPreview(slideshow);
+        previewItem.add_child(this._preview);
+        this.menu.addMenuItem(previewItem);
 
-        const title = new St.Label({
-            text: _('BG Slider'),
-            x_align: Clutter.ActorAlign.CENTER,
-            style: 'font-size: 18px; font-weight: bold;',
+        this._scalingItems = new Map();
+        this._scalingMenu = new PopupMenu.PopupSubMenuMenuItem('', true);
+        for (const [value, label] of SCALING_OPTIONS) {
+            const item = new PopupMenu.PopupMenuItem(label);
+            item.connect('activate', () => settings.set_string('picture-options', value));
+            this._scalingItems.set(value, item);
+            this._scalingMenu.menu.addMenuItem(item);
+        }
+        this.menu.addMenuItem(this._scalingMenu);
+
+        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        const controlsItem = new PopupMenu.PopupBaseMenuItem({
+            reactive: false,
+            can_focus: false,
+            style: 'padding: 4px 12px;',
         });
-        box.add_child(title);
-
-        this._statusLabel = new St.Label({
-            x_align: Clutter.ActorAlign.CENTER,
-            style: 'text-align: center; opacity: 0.7;',
-        });
-        box.add_child(this._statusLabel);
-
-        this._wallpaperLabel = new St.Label({
-            x_align: Clutter.ActorAlign.CENTER,
-            ellipsize: Pango.EllipsizeMode.MIDDLE,
-            style: 'text-align: center;',
-        });
-        box.add_child(this._wallpaperLabel);
-
         const controls = new St.BoxLayout({
             vertical: false,
             x_align: Clutter.ActorAlign.CENTER,
-            style: 'spacing: 8px;',
+            style: 'spacing: 12px;',
         });
-        this._previousButton = new St.Button({
-            label: _('\u25C0  Previous'),
-            style_class: 'button',
-            can_focus: true,
-        });
-        this._previousButton.connect('clicked', () => slideshow.previous());
+        this._previousButton = this._iconButton('media-skip-backward-symbolic', () => slideshow.previous());
+        this._randomButton = this._iconButton('media-playlist-shuffle-symbolic', () => slideshow.randomize());
+        this._nextButton = this._iconButton('media-skip-forward-symbolic', () => slideshow.next());
+        this._pauseButton = this._iconButton('media-playback-pause-symbolic', () => slideshow.togglePaused());
         controls.add_child(this._previousButton);
-
-        this._pauseButton = new St.Button({
-            style_class: 'button',
-            can_focus: true,
-        });
-        this._pauseButton.connect('clicked', () => slideshow.togglePaused());
-        controls.add_child(this._pauseButton);
-
-        this._nextButton = new St.Button({
-            label: _('Next  \u25B6'),
-            style_class: 'button',
-            can_focus: true,
-        });
-        this._nextButton.connect('clicked', () => slideshow.next());
+        controls.add_child(this._randomButton);
         controls.add_child(this._nextButton);
+        controls.add_child(this._pauseButton);
+        controlsItem.add_child(controls);
+        this.menu.addMenuItem(controlsItem);
 
-        box.add_child(controls);
-
-        this.contentLayout.add_child(box);
-
-        this.setButtons([
-            {
-                label: _('Settings\u2026'),
-                action: () => {
-                    this.close();
-                    extension.openPrefs();
-                },
-            },
-            {
-                label: _('Close'),
-                action: () => this.close(),
-                key: Clutter.KEY_Escape,
-                default: true,
-            },
-        ]);
+        const actionsItem = new PopupMenu.PopupBaseMenuItem({
+            reactive: false,
+            can_focus: false,
+            style: 'padding: 4px 12px;',
+        });
+        const actions = new St.BoxLayout({
+            vertical: false,
+            x_align: Clutter.ActorAlign.CENTER,
+            style: 'spacing: 12px;',
+        });
+        const settingsButton = new St.Button({
+            label: _('Settings\u2026'),
+            style_class: 'button',
+            can_focus: true,
+        });
+        settingsButton.connect('clicked', () => {
+            this.menu.close();
+            this._extension.openPrefs();
+        });
+        const aboutButton = new St.Button({
+            label: _('About'),
+            style_class: 'button',
+            can_focus: true,
+        });
+        aboutButton.connect('clicked', () => {
+            this.menu.close();
+            this._extension.showAboutDialog();
+        });
+        actions.add_child(settingsButton);
+        actions.add_child(aboutButton);
+        actionsItem.add_child(actions);
+        this.menu.addMenuItem(actionsItem);
     }
 
-    update() {
-        const slideshow = this._extension.slideshow;
-        const total = slideshow.files.length;
-        const current = slideshow.currentPath;
+    _iconButton(iconName, callback) {
+        const button = new St.Button({
+            style_class: 'button',
+            can_focus: true,
+            child: new St.Icon({icon_name: iconName, icon_size: 16}),
+        });
+        button.connect('clicked', callback);
+        return button;
+    }
 
-        if (total === 0) {
-            this._statusLabel.text = _('No wallpapers found');
-            this._wallpaperLabel.text = slideshow.directory;
-        } else {
-            const position = slideshow.index + 1;
-            const state = slideshow.paused ? _('paused') : _('running');
-            this._statusLabel.text = _('Slideshow %s \u2014 image %d of %d').format(state, position, total);
-            this._wallpaperLabel.text = baseName(current);
+    _sync() {
+        const settings = this._extension.settings;
+        const slideshow = this._extension.slideshow;
+        const profile = settings.get_string('active-profile');
+
+        for (const [id, item] of this._profileItems)
+            item.setOrnament(id === profile ? PopupMenu.Ornament.DOT : PopupMenu.Ornament.NONE);
+
+        const options = settings.get_string('picture-options');
+        for (const [value, label] of SCALING_OPTIONS) {
+            this._scalingItems.get(value)
+                .setOrnament(value === options ? PopupMenu.Ornament.DOT : PopupMenu.Ornament.NONE);
+            if (value === options)
+                this._scalingMenu.label.text = _('Scaling: %s').format(label);
         }
 
-        this._pauseButton.label = slideshow.paused ? _('\u25B6  Resume') : _('\u23F8  Pause');
+        this._pauseButton.child.icon_name = slideshow.paused
+            ? 'media-playback-start-symbolic'
+            : 'media-playback-pause-symbolic';
     }
 });
 
@@ -413,37 +554,42 @@ class AboutDialog extends ModalDialog.ModalDialog {
 
         const box = new St.BoxLayout({
             vertical: true,
-            style: 'width: 380px; spacing: 10px;',
-        });
-
-        const icon = new St.Icon({
-            icon_name: 'preferences-desktop-wallpaper-symbolic',
-            icon_size: 48,
             x_align: Clutter.ActorAlign.CENTER,
+            style: 'width: 380px; spacing: 12px;',
         });
-        box.add_child(icon);
 
+        box.add_child(new AboutAvatar());
+
+        const version = extension.metadata['version-name']
+            ?? String(extension.metadata.version ?? '2.0');
         const title = new St.Label({
-            text: _('BG Slider'),
+            text: _('BG Slider %s').format(version),
             x_align: Clutter.ActorAlign.CENTER,
             style: 'font-size: 18px; font-weight: bold; text-align: center;',
         });
         box.add_child(title);
 
-        const rows = [
-            _('Version: %s').format(extension.metadata.version ?? '2.0'),
-            _('Timed wallpaper slideshow for GNOME 45+'),
-            _('Based on GNomeBGSlider by AIsin'),
-            _('License: GPL-3.0'),
-            'github.com/4Pulcher/Gnome-BGSlider',
-        ];
-        for (const text of rows) {
-            box.add_child(new St.Label({
-                text,
-                x_align: Clutter.ActorAlign.CENTER,
-                style: 'text-align: center; opacity: 0.8;',
-            }));
-        }
+        const author = new St.Label({
+            text: _('Author: AIsin (4Pulcher)'),
+            x_align: Clutter.ActorAlign.CENTER,
+            style: 'text-align: center; opacity: 0.8;',
+        });
+        box.add_child(author);
+
+        const linkButton = new St.Button({
+            label: 'github.com/4Pulcher',
+            style_class: 'button',
+            can_focus: true,
+            x_align: Clutter.ActorAlign.CENTER,
+        });
+        linkButton.connect('clicked', () => {
+            try {
+                Gio.AppInfo.launch_default_for_uri(GITHUB_PROFILE_URI, null);
+            } catch (error) {
+                console.warn(`[BG Slider] could not open link: ${error.message}`);
+            }
+        });
+        box.add_child(linkButton);
 
         this.contentLayout.add_child(box);
 
@@ -463,14 +609,15 @@ export default class GnomeBGSliderExtension extends Extension {
         this._settings = this.getSettings();
 
         this._slideshow = new Slideshow(this._settings);
-        this._slideshowChangedId = this._slideshow.connect(SLIDESHOW_CHANGED, () => this._syncDialogs());
         this._slideshowErrorId = this._slideshow.connect(SLIDESHOW_ERROR, (_, message) => {
             console.warn(`[BG Slider] ${message}`);
         });
 
         this._settingsIds = [
-            this._settings.connect('changed::directory', () => this._onDirectoryChanged()),
-            this._settings.connect('changed::recursive', () => this._onDirectoryChanged()),
+            this._settings.connect('changed::active-profile', () => this._onSourceChanged()),
+            this._settings.connect('changed::user-directory', () => this._onSourceChanged()),
+            this._settings.connect('changed::system-directory', () => this._onSourceChanged()),
+            this._settings.connect('changed::recursive', () => this._onSourceChanged()),
             this._settings.connect('changed::interval-seconds', () => this._slideshow._restartTimer()),
             this._settings.connect('changed::picture-options', () => this._slideshow.applyOptions()),
         ];
@@ -478,7 +625,6 @@ export default class GnomeBGSliderExtension extends Extension {
         this._indicator = new Indicator(this);
         Main.panel.addToStatusArea(this.uuid, this._indicator);
 
-        this._mainDialog = null;
         this._aboutDialog = null;
 
         this._slideshow.start();
@@ -486,7 +632,6 @@ export default class GnomeBGSliderExtension extends Extension {
 
     disable() {
         this._slideshow.stop();
-        this._slideshow.disconnect(this._slideshowChangedId);
         this._slideshow.disconnect(this._slideshowErrorId);
         this._slideshow = null;
 
@@ -495,8 +640,6 @@ export default class GnomeBGSliderExtension extends Extension {
         this._settingsIds = [];
         this._settings = null;
 
-        this._mainDialog?.destroy();
-        this._mainDialog = null;
         this._aboutDialog?.destroy();
         this._aboutDialog = null;
 
@@ -504,15 +647,12 @@ export default class GnomeBGSliderExtension extends Extension {
         this._indicator = null;
     }
 
-    get slideshow() {
-        return this._slideshow;
+    get settings() {
+        return this._settings;
     }
 
-    showMainDialog() {
-        if (!this._mainDialog)
-            this._mainDialog = new MainMenuDialog(this);
-        this._mainDialog.update();
-        this._mainDialog.open(global.get_current_time());
+    get slideshow() {
+        return this._slideshow;
     }
 
     showAboutDialog() {
@@ -521,13 +661,7 @@ export default class GnomeBGSliderExtension extends Extension {
         this._aboutDialog.open(global.get_current_time());
     }
 
-    _syncDialogs() {
-        if (this._mainDialog?.state === ModalDialog.State.OPENED)
-            this._mainDialog.update();
-        this._indicator?._sync();
-    }
-
-    _onDirectoryChanged() {
+    _onSourceChanged() {
         this._slideshow.refresh();
         if (this._slideshow.files.length === 0) {
             Main.notify(_('BG Slider'),
@@ -535,6 +669,5 @@ export default class GnomeBGSliderExtension extends Extension {
         } else {
             this._slideshow.next();
         }
-        this._syncDialogs();
     }
 }

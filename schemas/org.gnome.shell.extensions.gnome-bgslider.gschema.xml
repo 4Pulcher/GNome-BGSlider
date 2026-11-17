@@ -1,10 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
   <schema id="org.gnome.shell.extensions.gnome-bgslider" path="/org/gnome/shell/extensions/gnome-bgslider/">
-    <key name="directory" type="s">
+    <key name="active-profile" type="s">
+      <choices>
+        <choice value="user"/>
+        <choice value="system"/>
+      </choices>
+      <default>"user"</default>
+      <summary>Active profile</summary>
+      <description>Which wallpaper source is active: 'user' (own wallpapers folder) or 'system' (system wallpapers folder).</description>
+    </key>
+    <key name="user-directory" type="s">
       <default>"~/Pictures/Wallpapers"</default>
-      <summary>Wallpaper folder</summary>
-      <description>Folder that contains the images to show. Subfolders are included when 'recursive' is enabled.</description>
+      <summary>User wallpapers folder</summary>
+      <description>Folder with your own wallpapers, used by the 'User' profile.</description>
+    </key>
+    <key name="system-directory" type="s">
+      <default>"/usr/share/backgrounds"</default>
+      <summary>System wallpapers folder</summary>
+      <description>Folder with the system wallpapers, used by the 'System' profile.</description>
     </key>
     <key name="interval-seconds" type="u">
       <range min="5" max="86400"/>

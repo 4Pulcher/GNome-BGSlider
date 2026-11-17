@@ -7,20 +7,27 @@ script `GNomeBGSlider.sh` is still included for reference under *Legacy*).
 ## Features
 
 - **Dedicated top-bar icon** (wallpaper symbol) in the panel.
-- **Left-click the icon** — opens the **Main Menu GUI**: slideshow state,
-  current wallpaper, and Previous / Pause / Next controls.
-- **Right-click the icon** — opens the menu with **Main Menu…**, **Settings…**
-  and **About**, plus quick slideshow controls:
-  - Slideshow running (pause / resume switch)
-  - Next / Previous wallpaper
+- **Click the icon** (left or right) — opens the **popup**:
+  - **Profile chooser**: `User` (your wallpapers folder,
+    default `~/Pictures/Wallpapers`) and `System`
+    (default `/usr/share/backgrounds`), shown with a radio dot.
+  - **Preview frame (256×256)** of the current wallpaper, scaled
+    according to the active picture option.
+  - **Scaling selector**: sub-menu with all GNOME picture options
+    (`none`, `wallpaper`, `centered`, `scaled`, `stretched`, `zoom`,
+    `spanned`) — the preview updates instantly.
+  - **Buttons**: previous, randomize, next, and pause/resume.
+  - **Buttons**: `Settings…` and `About`.
 - **Settings GUI** (GTK4 / libadwaita window):
-  - Wallpaper folder (folder picker)
+  - User profile folder and System profile folder (folder pickers)
   - Interval in seconds (5 s – 24 h)
   - Random (shuffle) or alphabetical order
   - Include subfolders (recursive scan, like the old `globstar` behaviour)
   - Picture options (`zoom`, `spanned`, `scaled`, … — as in the old script)
   - Restore your original wallpaper when the extension is disabled
-- **About dialog** with version, author, license and link.
+- **About dialog**: your GitHub profile photo (256×256, loaded from
+  github.com/4Pulcher), name and version, author, and a link button to
+  [github.com/4Pulcher](https://github.com/4Pulcher).
 - Supports both `picture-uri` and `picture-uri-dark` (light/dark themes).
 
 ## Installation
@@ -58,9 +65,10 @@ gnome-extensions install gnome-bgslider@4pulcher.zip --force
 
 | Action | Result |
 | --- | --- |
-| Left-click panel icon | Main Menu GUI (status, current wallpaper, Previous / Pause / Next) |
-| Right-click panel icon | Menu: Main Menu…, Settings…, About + slideshow controls |
-| Settings… | Folder, interval, shuffle, subfolders, picture options |
+| Click panel icon (left or right) | Popup: profile chooser, 256×256 preview, scaling selector, previous / randomize / next / pause, Settings…, About |
+| Choose `User` or `System` | Switches the wallpapers folder used by the slideshow |
+| Scaling sub-menu | Sets the picture option; preview updates instantly |
+| Settings… | Profile folders, interval, shuffle, subfolders, picture options |
 | Disable the extension | Timer stops; your previous wallpaper is restored (configurable) |
 
 Supported image types: `jpg`, `jpeg`, `png`, `gif`, `webp`, `bmp`, `svg`,
@@ -69,9 +77,10 @@ animate them; the old script needed ImageMagick for this).
 
 ## Default folder
 
-The default wallpaper folder is `~/Pictures/Wallpapers`. Change it in the
-Settings window, or put your images there. The original script used
-`~/Afbeeldingen/Wallpapers` — simply select that folder once in Settings.
+The `User` profile defaults to `~/Pictures/Wallpapers`, the `System` profile
+to `/usr/share/backgrounds`. Change both in the Settings window, or put your
+images there. The original script used `~/Afbeeldingen/Wallpapers` — simply
+select that folder once as the User profile folder.
 
 ## Legacy script
 
@@ -81,7 +90,8 @@ stand-alone, but the extension replaces it: no terminal, no ImageMagick, no
 
 ## Development
 
-- `extension.js` — indicator, menus, dialogs and slideshow engine
+- `extension.js` — indicator, popup (profiles, preview, scaling, controls),
+  About dialog and slideshow engine
 - `prefs.js` — GTK4/libadwaita settings window
 - `schemas/` — GSettings schema (`glib-compile-schemas schemas/` after edits)
 - `metadata.json` — extension metadata (GNOME 45–49)
