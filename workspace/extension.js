@@ -613,6 +613,7 @@ class AboutDialog extends ModalDialog.ModalDialog {
 
 export default class GnomeBGSliderExtension extends Extension {
     enable() {
+        this._ensureSchemaCompiled();
         this._settings = this.getSettings();
 
         this._slideshow = new Slideshow(this._settings);
@@ -651,6 +652,22 @@ export default class GnomeBGSliderExtension extends Extension {
 
         this._indicator?.destroy();
         this._indicator = null;
+    }
+
+    _ensureSchemaCompiled() {
+        try {
+            this.getSettings();
+            return;
+        } catch {
+        }
+        try {
+            const proc = Gio.Subprocess.new(
+                ['glib-compile-schemas', GLib.build_filenamev([this.path, 'schemas'])],
+                Gio.SubprocessFlags.NONE);
+            proc.wait_check(null);
+        } catch (error) {
+            console.warn(`[BG Slider] could not compile schemas: ${error.message}`);
+        }
     }
 
     get settings() {

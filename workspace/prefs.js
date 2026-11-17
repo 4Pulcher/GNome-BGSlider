@@ -1,4 +1,5 @@
 import Adw from 'gi://Adw';
+import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 
@@ -32,6 +33,7 @@ const DEFAULT_PROFILES = [
 export default class GnomeBGSliderPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         this._window = window;
+        this._ensureSchemaCompiled();
         this._settings = this.getSettings();
         this._profiles = this._loadProfiles();
         this._updating = false;
@@ -143,6 +145,22 @@ export default class GnomeBGSliderPreferences extends ExtensionPreferences {
 
         this._refreshProfileSelector();
         this._refreshDirList();
+    }
+
+    _ensureSchemaCompiled() {
+        try {
+            this.getSettings();
+            return;
+        } catch {
+        }
+        try {
+            const proc = Gio.Subprocess.new(
+                ['glib-compile-schemas', GLib.build_filenamev([this.path, 'schemas'])],
+                Gio.SubprocessFlags.NONE);
+            proc.wait_check(null);
+        } catch (error) {
+            console.warn(`[BG Slider] could not compile schemas: ${error.message}`);
+        }
     }
 
     _buildAboutPage() {
