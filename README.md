@@ -22,11 +22,11 @@ script `GNomeBGSlider.sh` is still included for reference under *Legacy*).
   - **Profiles frame**:
     - Profile selector
     - List with the wallpaper folders included in the profile
-    - **Scaling method** selector (all GNOME picture options)
+    - **Scaling method** selector (all GNOME picture options) with a
+      **Random** switch beside it (default off = alphabetical order)
     - Buttons: `Add Folder`, `Modify Folder`, `Remove Folder`
     - Buttons: `New Profile`, `Delete Profile`
   - Interval in seconds (5 s – 24 h)
-  - Random (shuffle) or alphabetical order
   - Include subfolders (recursive scan, like the old `globstar` behaviour)
   - Restore your original wallpaper when the extension is disabled
 - **About dialog**: your GitHub profile photo (256×256, loaded from

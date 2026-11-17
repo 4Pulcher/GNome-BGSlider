@@ -72,6 +72,13 @@ export default class GnomeBGSliderPreferences extends ExtensionPreferences {
             this._settings.set_string('picture-options', PICTURE_OPTIONS[this._scalingRow.selected]));
         profilesGroup.add(this._scalingRow);
 
+        this._shuffleRow = new Adw.SwitchRow({
+            title: _('Random'),
+            subtitle: _('Off shows wallpapers in alphabetical order'),
+        });
+        this._settings.bind('shuffle', this._shuffleRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        profilesGroup.add(this._shuffleRow);
+
         const folderButtons = new Gtk.Box({
             orientation: Gtk.Orientation.HORIZONTAL,
             spacing: 8,
@@ -115,13 +122,6 @@ export default class GnomeBGSliderPreferences extends ExtensionPreferences {
         intervalRow.subtitle = _('How long each wallpaper is shown');
         this._settings.bind('interval-seconds', intervalRow, 'value', Gio.SettingsBindFlags.DEFAULT);
         slideshowGroup.add(intervalRow);
-
-        const shuffleRow = new Adw.SwitchRow({
-            title: _('Random order'),
-            subtitle: _('Off shows wallpapers in alphabetical order'),
-        });
-        this._settings.bind('shuffle', shuffleRow, 'active', Gio.SettingsBindFlags.DEFAULT);
-        slideshowGroup.add(shuffleRow);
 
         const recursiveRow = new Adw.SwitchRow({
             title: _('Include subfolders'),

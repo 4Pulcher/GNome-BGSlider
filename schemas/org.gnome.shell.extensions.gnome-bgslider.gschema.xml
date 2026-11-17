@@ -18,8 +18,8 @@
       <description>How long each wallpaper is shown before switching.</description>
     </key>
     <key name="shuffle" type="b">
-      <default>true</default>
-      <summary>Random order</summary>
+      <default>false</default>
+      <summary>Random</summary>
       <description>When disabled, wallpapers are shown in alphabetical order.</description>
     </key>
     <key name="recursive" type="b">
