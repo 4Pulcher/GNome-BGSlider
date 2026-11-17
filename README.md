@@ -3,6 +3,16 @@
 A timed wallpaper slideshow for the GNOME desktop, rewritten as a native
 **GNOME Shell extension** for GNOME **45, 46, 47, 48 and 49**.
 
+## Download
+
+| Version | Download | Documentation |
+| --- | --- | --- |
+| **2.0** (current, GNOME 45–49) | [gnome-bgslider@4pulcher.zip](gnome-bgslider@4pulcher.zip) | [versions/2.0/README.md](versions/2.0/README.md) |
+| 1.0 (legacy bash script) | [versions/1.0/GNomeBGSlider.sh](versions/1.0/GNomeBGSlider.sh) | [versions/1.0/README.md](versions/1.0/README.md) |
+
+Both zips contain an `install.sh`. See [VERSIONS.md](VERSIONS.md) for the
+full release history.
+
 ## Repository layout
 
 ```
@@ -11,10 +21,11 @@ A timed wallpaper slideshow for the GNOME desktop, rewritten as a native
 │   ├── extension.js              # indicator, popup, About, slideshow engine
 │   ├── prefs.js                  # GTK4/libadwaita settings window
 │   ├── metadata.json
+│   ├── install.sh                # bundled in the zip
 │   └── schemas/                  # GSettings schema
 ├── versions/
-│   ├── 1.0/GNomeBGSlider.sh      # legacy bash script (original, by AIsin)
-│   └── 2.0/gnome-bgslider@4pulcher-2.0.zip
+│   ├── 1.0/                      # legacy bash script + install.sh + README
+│   └── 2.0/                      # extension zip + README
 ├── VERSIONS.md                   # release history
 └── LICENSE                       # GPL-3.0
 ```
@@ -52,6 +63,14 @@ A timed wallpaper slideshow for the GNOME desktop, rewritten as a native
 ## Installation
 
 ### From the zip (recommended)
+
+```bash
+unzip gnome-bgslider@4pulcher.zip
+cd gnome-bgslider@4pulcher
+./install.sh
+```
+
+Or without the script:
 
 ```bash
 unzip gnome-bgslider@4pulcher.zip \
