@@ -2,23 +2,14 @@
 <schemalist>
   <schema id="org.gnome.shell.extensions.gnome-bgslider" path="/org/gnome/shell/extensions/gnome-bgslider/">
     <key name="active-profile" type="s">
-      <choices>
-        <choice value="user"/>
-        <choice value="system"/>
-      </choices>
-      <default>"user"</default>
+      <default>"User"</default>
       <summary>Active profile</summary>
-      <description>Which wallpaper source is active: 'user' (own wallpapers folder) or 'system' (system wallpapers folder).</description>
+      <description>Name of the profile whose folders are used by the slideshow.</description>
     </key>
-    <key name="user-directory" type="s">
-      <default>"~/Pictures/Wallpapers"</default>
-      <summary>User wallpapers folder</summary>
-      <description>Folder with your own wallpapers, used by the 'User' profile.</description>
-    </key>
-    <key name="system-directory" type="s">
-      <default>"/usr/share/backgrounds"</default>
-      <summary>System wallpapers folder</summary>
-      <description>Folder with the system wallpapers, used by the 'System' profile.</description>
+    <key name="profiles-json" type="s">
+      <default>"[{&quot;name&quot;: &quot;User&quot;, &quot;directories&quot;: [&quot;~/Pictures/Wallpapers&quot;]}, {&quot;name&quot;: &quot;System&quot;, &quot;directories&quot;: [&quot;/usr/share/backgrounds&quot;]}]"</default>
+      <summary>Profiles</summary>
+      <description>JSON list of profiles, each with a name and the wallpaper folders it contains.</description>
     </key>
     <key name="interval-seconds" type="u">
       <range min="5" max="86400"/>

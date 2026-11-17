@@ -19,11 +19,15 @@ script `GNomeBGSlider.sh` is still included for reference under *Legacy*).
   - **Buttons**: previous, randomize, next, and pause/resume.
   - **Buttons**: `Settings…` and `About`.
 - **Settings GUI** (GTK4 / libadwaita window):
-  - User profile folder and System profile folder (folder pickers)
+  - **Profiles frame**:
+    - Profile selector
+    - List with the wallpaper folders included in the profile
+    - **Scaling method** selector (all GNOME picture options)
+    - Buttons: `Add Folder`, `Modify Folder`, `Remove Folder`
+    - Buttons: `New Profile`, `Delete Profile`
   - Interval in seconds (5 s – 24 h)
   - Random (shuffle) or alphabetical order
   - Include subfolders (recursive scan, like the old `globstar` behaviour)
-  - Picture options (`zoom`, `spanned`, `scaled`, … — as in the old script)
   - Restore your original wallpaper when the extension is disabled
 - **About dialog**: your GitHub profile photo (256×256, loaded from
   github.com/4Pulcher), name and version, author, and a link button to
@@ -77,10 +81,10 @@ animate them; the old script needed ImageMagick for this).
 
 ## Default folder
 
-The `User` profile defaults to `~/Pictures/Wallpapers`, the `System` profile
-to `/usr/share/backgrounds`. Change both in the Settings window, or put your
-images there. The original script used `~/Afbeeldingen/Wallpapers` — simply
-select that folder once as the User profile folder.
+Profiles are dynamic: the defaults are `User` (`~/Pictures/Wallpapers`) and
+`System` (`/usr/share/backgrounds`), and you can add your own profiles with
+any number of folders in Settings. The original script used
+`~/Afbeeldingen/Wallpapers` — simply add that folder to the User profile.
 
 ## Legacy script
 

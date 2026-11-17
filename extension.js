@@ -25,11 +25,6 @@ const PREVIEW_SIZE = 256;
 const SLIDESHOW_CHANGED = 'changed';
 const SLIDESHOW_ERROR = 'error';
 
-const PROFILES = [
-    {id: 'user', label: _('User'), key: 'user-directory'},
-    {id: 'system', label: _('System'), key: 'system-directory'},
-];
-
 const SCALING_OPTIONS = [
     ['none', _('None')],
     ['wallpaper', _('Wallpaper (tile)')],
@@ -48,10 +43,6 @@ function expandPath(path) {
     if (path.startsWith('~/'))
         return GLib.build_filenamev([GLib.get_home_dir(), path.slice(2)]);
     return path;
-}
-
-function baseName(path) {
-    return path?.split('/').filter(p => p.length > 0).pop() ?? '';
 }
 
 function pixbufToContent(pixbuf) {
@@ -121,9 +112,21 @@ const Slideshow = GObject.registerClass({
         return this._settings.get_string('active-profile');
     }
 
-    get directory() {
-        const profile = PROFILES.find(p => p.id === this.profile) ?? PROFILES[0];
-        return expandPath(this._settings.get_string(profile.key));
+    get profiles() {
+        try {
+            const parsed = JSON.parse(this._settings.get_string('profiles-json'));
+            if (Array.isArray(parsed))
+                return parsed.filter(p => p && typeof p.name === 'string' && Array.isArray(p.directories));
+        } catch {
+        }
+        return [];
+    }
+
+    get directories() {
+        const profile = this.profiles.find(p => p.name === this.profile);
+        if (!profile)
+            return [];
+        return profile.directories.map(expandPath);
     }
 
     get interval() {
@@ -156,12 +159,14 @@ const Slideshow = GObject.registerClass({
     }
 
     refresh() {
-        const dir = Gio.File.new_for_path(this.directory);
         const files = [];
-        if (this._settings.get_boolean('recursive'))
-            this._scanDirectory(dir, files, 0);
-        else
-            this._collectFiles(dir, files);
+        for (const directory of this.directories) {
+            const dir = Gio.File.new_for_path(directory);
+            if (this._settings.get_boolean('recursive'))
+                this._scanDirectory(dir, files, 0);
+            else
+                this._collectFiles(dir, files);
+        }
         files.sort((a, b) => a.localeCompare(b));
 
         const current = this.currentPath;
@@ -429,13 +434,8 @@ class Indicator extends PanelMenu.Button {
         const settings = this._extension.settings;
         const slideshow = this._extension.slideshow;
 
-        this._profileItems = new Map();
-        for (const profile of PROFILES) {
-            const item = new PopupMenu.PopupMenuItem(profile.label);
-            item.connect('activate', () => settings.set_string('active-profile', profile.id));
-            this._profileItems.set(profile.id, item);
-            this.menu.addMenuItem(item);
-        }
+        this._profileSection = new PopupMenu.PopupMenuSection();
+        this.menu.addMenuItem(this._profileSection);
 
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
@@ -528,10 +528,17 @@ class Indicator extends PanelMenu.Button {
     _sync() {
         const settings = this._extension.settings;
         const slideshow = this._extension.slideshow;
-        const profile = settings.get_string('active-profile');
+        const activeProfile = settings.get_string('active-profile');
 
-        for (const [id, item] of this._profileItems)
-            item.setOrnament(id === profile ? PopupMenu.Ornament.DOT : PopupMenu.Ornament.NONE);
+        this._profileSection.removeAll();
+        for (const profile of slideshow.profiles) {
+            const item = new PopupMenu.PopupMenuItem(profile.name);
+            item.connect('activate', () => settings.set_string('active-profile', profile.name));
+            item.setOrnament(profile.name === activeProfile
+                ? PopupMenu.Ornament.DOT
+                : PopupMenu.Ornament.NONE);
+            this._profileSection.addMenuItem(item);
+        }
 
         const options = settings.get_string('picture-options');
         for (const [value, label] of SCALING_OPTIONS) {
@@ -615,8 +622,7 @@ export default class GnomeBGSliderExtension extends Extension {
 
         this._settingsIds = [
             this._settings.connect('changed::active-profile', () => this._onSourceChanged()),
-            this._settings.connect('changed::user-directory', () => this._onSourceChanged()),
-            this._settings.connect('changed::system-directory', () => this._onSourceChanged()),
+            this._settings.connect('changed::profiles-json', () => this._onSourceChanged()),
             this._settings.connect('changed::recursive', () => this._onSourceChanged()),
             this._settings.connect('changed::interval-seconds', () => this._slideshow._restartTimer()),
             this._settings.connect('changed::picture-options', () => this._slideshow.applyOptions()),
@@ -663,9 +669,10 @@ export default class GnomeBGSliderExtension extends Extension {
 
     _onSourceChanged() {
         this._slideshow.refresh();
-        if (this._slideshow.files.length === 0) {
-            Main.notify(_('BG Slider'),
-                _('No wallpapers found in %s').format(this._slideshow.directory));
+        if (this._slideshow.directories.length === 0) {
+            Main.notify(_('BG Slider'), _('The active profile has no folders'));
+        } else if (this._slideshow.files.length === 0) {
+            Main.notify(_('BG Slider'), _('No wallpapers found in the active profile'));
         } else {
             this._slideshow.next();
         }
