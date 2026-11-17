@@ -7,7 +7,7 @@
       <description>Name of the profile whose folders are used by the slideshow.</description>
     </key>
     <key name="profiles-json" type="s">
-      <default>"[{&quot;name&quot;: &quot;User&quot;, &quot;directories&quot;: [&quot;~/Pictures/Wallpapers&quot;]}, {&quot;name&quot;: &quot;System&quot;, &quot;directories&quot;: [&quot;/usr/share/backgrounds&quot;]}]"</default>
+      <default>'[{"name": "User", "directories": ["~/Pictures/Wallpapers"]}, {"name": "System", "directories": ["/usr/share/backgrounds"]}]'</default>
       <summary>Profiles</summary>
       <description>JSON list of profiles, each with a name and the wallpaper folders it contains.</description>
     </key>
