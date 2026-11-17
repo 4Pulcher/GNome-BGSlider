@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.gnome-bgslider" path="/org/gnome/shell/extensions/gnome-bgslider/">
+    <key name="active-profile" type="s">
+      <default>"User"</default>
+      <summary>Active profile</summary>
+      <description>Name of the profile whose folders are used by the slideshow.</description>
+    </key>
+    <key name="profiles-json" type="s">
+      <default>'[{"name": "User", "directories": ["~/Pictures/Wallpapers"]}, {"name": "System", "directories": ["/usr/share/backgrounds"]}]'</default>
+      <summary>Profiles</summary>
+      <description>JSON list of profiles, each with a name and the wallpaper folders it contains.</description>
+    </key>
+    <key name="interval-seconds" type="u">
+      <range min="5" max="86400"/>
+      <default>30</default>
+      <summary>Interval in seconds</summary>
+      <description>How long each wallpaper is shown before switching.</description>
+    </key>
+    <key name="shuffle" type="b">
+      <default>false</default>
+      <summary>Random</summary>
+      <description>When disabled, wallpapers are shown in alphabetical order.</description>
+    </key>
+    <key name="recursive" type="b">
+      <default>true</default>
+      <summary>Include subfolders</summary>
+      <description>Also scan subfolders of the wallpaper folder.</description>
+    </key>
+    <key name="picture-options" type="s">
+      <choices>
+        <choice value="none"/>
+        <choice value="wallpaper"/>
+        <choice value="centered"/>
+        <choice value="scaled"/>
+        <choice value="stretched"/>
+        <choice value="zoom"/>
+        <choice value="spanned"/>
+      </choices>
+      <default>"zoom"</default>
+      <summary>Picture options</summary>
+      <description>How the wallpaper fills the screen (org.gnome.desktop.background picture-options).</description>
+    </key>
+    <key name="restore-original" type="b">
+      <default>true</default>
+      <summary>Restore original wallpaper</summary>
+      <description>Restore the wallpaper that was active before the extension was enabled, when it is disabled.</description>
+    </key>
+  </schema>
+</schemalist>
