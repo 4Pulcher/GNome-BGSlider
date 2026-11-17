@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.gnome-bgslider" path="/org/gnome/shell/extensions/gnome-bgslider/">
+    <key name="directory" type="s">
+      <default>"~/Pictures/Wallpapers"</default>
+      <summary>Wallpaper folder</summary>
+      <description>Folder that contains the images to show. Subfolders are included when 'recursive' is enabled.</description>
+    </key>
+    <key name="interval-seconds" type="u">
+      <range min="5" max="86400"/>
+      <default>30</default>
+      <summary>Interval in seconds</summary>
+      <description>How long each wallpaper is shown before switching.</description>
+    </key>
+    <key name="shuffle" type="b">
+      <default>true</default>
+      <summary>Random order</summary>
+      <description>When disabled, wallpapers are shown in alphabetical order.</description>
+    </key>
+    <key name="recursive" type="b">
+      <default>true</default>
+      <summary>Include subfolders</summary>
+      <description>Also scan subfolders of the wallpaper folder.</description>
+    </key>
+    <key name="picture-options" type="s">
+      <choices>
+        <choice value="none"/>
+        <choice value="wallpaper"/>
+        <choice value="centered"/>
+        <choice value="scaled"/>
+        <choice value="stretched"/>
+        <choice value="zoom"/>
+        <choice value="spanned"/>
+      </choices>
+      <default>"zoom"</default>
+      <summary>Picture options</summary>
+      <description>How the wallpaper fills the screen (org.gnome.desktop.background picture-options).</description>
+    </key>
+    <key name="restore-original" type="b">
+      <default>true</default>
+      <summary>Restore original wallpaper</summary>
+      <description>Restore the wallpaper that was active before the extension was enabled, when it is disabled.</description>
+    </key>
+  </schema>
+</schemalist>
