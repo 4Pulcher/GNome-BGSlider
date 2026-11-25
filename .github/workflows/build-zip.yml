@@ -15,7 +15,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      TAG: v2.1.0
+      TAG: v2.1.1
     steps:
       - uses: actions/checkout@v4
 
@@ -52,13 +52,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "$TAG" --title "BG Slider 2.1.0" \
-            --notes "Wallpaper slideshow release (2.1.0).
+          gh release create "$TAG" --title "BG Slider 2.1.1" \
+            --notes "Bug-fix release (2.1.1).
 
-          New menus:
-          - Left click on the panel icon: popup with a preview of the NEXT wallpaper, a View chooser (none/centered/scaled/stretched/zoom/spanned/tile), an Interval chooser (10 s to 1 day), and Previous / Normal-Random / Next / Preferences buttons.
-          - Right click on the panel icon: profile chooser, Preferences, Stop/Continue slideshow, and Disable BG Slider.
-
-          Earlier fixes (2.0.1) included: fatal TypeError on enable (GdkPixbuf API), About avatar loading, Settings window on GNOME 45/46." \
+          - Fix: 'gettext can only be called from extensions' — extension.js and prefs.js no longer call gettext at module scope; all labels are translated at runtime. This error previously prevented the extension from loading at all." \
             || gh release edit "$TAG" --latest
           gh release upload "$TAG" build/gnome-bgslider@4pulcher.zip --clobber

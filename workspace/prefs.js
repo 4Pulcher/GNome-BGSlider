@@ -15,14 +15,16 @@ const PICTURE_OPTIONS = [
     'spanned',
 ];
 
+// Raw strings; translated at runtime because module-scope gettext is
+// not allowed ("gettext can only be called from extensions").
 const PICTURE_OPTION_LABELS = [
-    _('None'),
-    _('Wallpaper (tile)'),
-    _('Centered'),
-    _('Scaled'),
-    _('Stretched'),
-    _('Zoom'),
-    _('Spanned'),
+    'None',
+    'Wallpaper (tile)',
+    'Centered',
+    'Scaled',
+    'Stretched',
+    'Zoom',
+    'Spanned',
 ];
 
 const DEFAULT_PROFILES = [
@@ -66,7 +68,7 @@ export default class GnomeBGSliderPreferences extends ExtensionPreferences {
         this._scalingRow = new Adw.ComboRow({
             title: _('Scaling method'),
             subtitle: _('How the wallpaper fills the screen'),
-            model: Gtk.StringList.new(PICTURE_OPTION_LABELS),
+            model: Gtk.StringList.new(PICTURE_OPTION_LABELS.map(label => _(label))),
         });
         const currentIndex = PICTURE_OPTIONS.indexOf(this._settings.get_string('picture-options'));
         this._scalingRow.selected = currentIndex === -1 ? 5 : currentIndex;

@@ -7,7 +7,18 @@ latest installable bundle is published as a GitHub
 [`gnome-bgslider@4pulcher.zip`](https://github.com/4Pulcher/GNome-BGSlider/releases/latest/download/gnome-bgslider@4pulcher.zip),
 built automatically by CI from `workspace/`.
 
-## 2.1.0 — Reworked menus (current)
+## 2.1.1 — Bug-fix release (current)
+
+- **Download:** [`gnome-bgslider@4pulcher.zip`](https://github.com/4Pulcher/GNome-BGSlider/releases/latest/download/gnome-bgslider@4pulcher.zip)
+- **Documentation:** [`versions/2.0/README.md`](versions/2.0/README.md)
+- **Type:** native GNOME Shell extension (`gnome-bgslider@4pulcher`)
+- **Fixes over 2.1.0:**
+  - Fixed `Error: gettext can only be called from extensions`:
+    `extension.js` and `prefs.js` no longer call `gettext` at module
+    scope. All option labels are now translated at runtime. This error
+    prevented the extension from loading.
+
+## 2.1.0 — Reworked menus
 
 - **Download:** [`gnome-bgslider@4pulcher.zip`](https://github.com/4Pulcher/GNome-BGSlider/releases/latest/download/gnome-bgslider@4pulcher.zip)
 - **Documentation:** [`versions/2.0/README.md`](versions/2.0/README.md)

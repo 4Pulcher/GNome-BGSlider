@@ -7,7 +7,7 @@ A timed wallpaper slideshow for the GNOME desktop, rewritten as a native
 
 | Version | Download | Documentation |
 | --- | --- | --- |
-| **2.1.0** (current, GNOME 45–49) | [gnome-bgslider@4pulcher.zip](https://github.com/4Pulcher/GNome-BGSlider/releases/latest/download/gnome-bgslider@4pulcher.zip) | [versions/2.0/README.md](versions/2.0/README.md) |
+| **2.1.1** (current, GNOME 45–49) | [gnome-bgslider@4pulcher.zip](https://github.com/4Pulcher/GNome-BGSlider/releases/latest/download/gnome-bgslider@4pulcher.zip) | [versions/2.0/README.md](versions/2.0/README.md) |
 | 1.0 (legacy bash script) | [versions/1.0/GNomeBGSlider.sh](versions/1.0/GNomeBGSlider.sh) | [versions/1.0/README.md](versions/1.0/README.md) |
 
 The zip is built automatically by GitHub Actions from `workspace/` on
