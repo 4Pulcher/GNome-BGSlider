@@ -74,11 +74,8 @@ export default class GnomeBGSliderPreferences extends ExtensionPreferences {
             this._settings.set_string('picture-options', PICTURE_OPTIONS[this._scalingRow.selected]));
         profilesGroup.add(this._scalingRow);
 
-        this._shuffleRow = new Adw.SwitchRow({
-            title: _('Random'),
-            subtitle: _('Off shows wallpapers in alphabetical order'),
-        });
-        this._settings.bind('shuffle', this._shuffleRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        this._shuffleRow = this._buildSwitchRow(
+            _('Random'), _('Off shows wallpapers in alphabetical order'), 'shuffle');
         profilesGroup.add(this._shuffleRow);
 
         const folderButtons = new Gtk.Box({
@@ -125,18 +122,12 @@ export default class GnomeBGSliderPreferences extends ExtensionPreferences {
         this._settings.bind('interval-seconds', intervalRow, 'value', Gio.SettingsBindFlags.DEFAULT);
         slideshowGroup.add(intervalRow);
 
-        const recursiveRow = new Adw.SwitchRow({
-            title: _('Include subfolders'),
-        });
-        this._settings.bind('recursive', recursiveRow, 'active', Gio.SettingsBindFlags.DEFAULT);
-        slideshowGroup.add(recursiveRow);
+        slideshowGroup.add(this._buildSwitchRow(_('Include subfolders'), null, 'recursive'));
 
-        const restoreRow = new Adw.SwitchRow({
-            title: _('Restore original wallpaper'),
-            subtitle: _('Put back the wallpaper you had before enabling BG Slider'),
-        });
-        this._settings.bind('restore-original', restoreRow, 'active', Gio.SettingsBindFlags.DEFAULT);
-        slideshowGroup.add(restoreRow);
+        slideshowGroup.add(this._buildSwitchRow(
+            _('Restore original wallpaper'),
+            _('Put back the wallpaper you had before enabling BG Slider'),
+            'restore-original'));
 
         page.add(slideshowGroup);
         window.add(page);
@@ -145,6 +136,19 @@ export default class GnomeBGSliderPreferences extends ExtensionPreferences {
 
         this._refreshProfileSelector();
         this._refreshDirList();
+    }
+
+    _buildSwitchRow(title, subtitle, key) {
+        const row = new Adw.ActionRow({title});
+        if (subtitle)
+            row.subtitle = subtitle;
+        const toggle = new Gtk.Switch({
+            valign: Gtk.Align.CENTER,
+        });
+        this._settings.bind(key, toggle, 'active', Gio.SettingsBindFlags.DEFAULT);
+        row.add_suffix(toggle);
+        row.activatable_widget = toggle;
+        return row;
     }
 
     _ensureSchemaCompiled() {
@@ -380,3 +384,4 @@ export default class GnomeBGSliderPreferences extends ExtensionPreferences {
         dialog.present();
     }
 }
+

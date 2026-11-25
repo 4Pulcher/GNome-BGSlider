@@ -1,14 +1,33 @@
 # VERSIONS
 
 All released versions of GNome-BGSlider live in [`versions/`](versions/),
-each with its own README and (where applicable) an `install.sh`. The latest
-installable bundle is also provided at the repository root as
-[`gnome-bgslider@4pulcher.zip`](gnome-bgslider@4pulcher.zip).
+each with its own README and (where applicable) an `install.sh`. The
+latest installable bundle is published as a GitHub
+[release asset](https://github.com/4Pulcher/GNome-BGSlider/releases):
+[`gnome-bgslider@4pulcher.zip`](https://github.com/4Pulcher/GNome-BGSlider/releases/latest/download/gnome-bgslider@4pulcher.zip),
+built automatically by CI from `workspace/`.
 
-## 2.0 — GNOME Shell extension (current)
+## 2.0.1 — Bug-fix release (current)
 
-- **Download:** [`gnome-bgslider@4pulcher.zip`](gnome-bgslider@4pulcher.zip)
-  (also kept as [`versions/2.0/gnome-bgslider@4pulcher-2.0.zip`](versions/2.0/gnome-bgslider@4pulcher-2.0.zip))
+- **Download:** [`gnome-bgslider@4pulcher.zip`](https://github.com/4Pulcher/GNome-BGSlider/releases/latest/download/gnome-bgslider@4pulcher.zip)
+- **Documentation:** [`versions/2.0/README.md`](versions/2.0/README.md)
+- **Type:** native GNOME Shell extension (`gnome-bgslider@4pulcher`)
+- **Fixes over 2.0:**
+  - Fatal `TypeError` on enable: the non-existent
+    `GdkPixbuf.Pixbuf.new_from_file_at_size_async` was replaced by the
+    synchronous `GdkPixbuf.Pixbuf.new_from_file_at_size` (GNOME marked the
+    extension as broken when enabling it).
+  - About dialog avatar: `Gio.MemoryStream` (non-existent) replaced by
+    `Gio.MemoryInputStream`.
+  - Settings window now also opens on GNOME 45 / 46 (`Adw.SwitchRow`
+    needs libadwaita 1.6; replaced with `Adw.ActionRow` + `Gtk.Switch`).
+  - The install zip is now built and published by GitHub Actions, so it
+    always matches the sources in `workspace/`.
+
+## 2.0 — GNOME Shell extension
+
+- **Download:** superseded by
+  [2.0.1](https://github.com/4Pulcher/GNome-BGSlider/releases/latest/download/gnome-bgslider@4pulcher.zip)
 - **Documentation:** [`versions/2.0/README.md`](versions/2.0/README.md)
 - **Type:** native GNOME Shell extension (`gnome-bgslider@4pulcher`)
 - **GNOME:** 45, 46, 47, 48, 49
