@@ -25,28 +25,52 @@ const PREVIEW_SIZE = 256;
 const SLIDESHOW_CHANGED = 'changed';
 const SLIDESHOW_ERROR = 'error';
 
+// Translations are applied at runtime, not at module scope:
+// gettext may only be called from extension code ("gettext can only
+// be called from extensions").
 const INTERVAL_OPTIONS = [
-    [10, _('10 seconds')],
-    [30, _('30 seconds')],
-    [60, _('1 minute')],
-    [300, _('5 minutes')],
-    [900, _('15 minutes')],
-    [1800, _('30 minutes')],
-    [3600, _('1 hour')],
-    [10800, _('3 hours')],
-    [43200, _('12 hours')],
-    [86400, _('1 day')],
+    [10, '10 seconds'],
+    [30, '30 seconds'],
+    [60, '1 minute'],
+    [300, '5 minutes'],
+    [900, '15 minutes'],
+    [1800, '30 minutes'],
+    [3600, '1 hour'],
+    [10800, '3 hours'],
+    [43200, '12 hours'],
+    [86400, '1 day'],
 ];
 
 const SCALING_OPTIONS = [
-    ['none', _('None')],
-    ['wallpaper', _('Wallpaper (tile)')],
-    ['centered', _('Centered')],
-    ['scaled', _('Scaled')],
-    ['stretched', _('Stretched')],
-    ['zoom', _('Zoom')],
-    ['spanned', _('Spanned')],
+    'none',
+    'wallpaper',
+    'centered',
+    'scaled',
+    'stretched',
+    'zoom',
+    'spanned',
 ];
+
+function scalingLabel(value) {
+    switch (value) {
+    case 'none':
+        return _('None');
+    case 'wallpaper':
+        return _('Wallpaper (tile)');
+    case 'centered':
+        return _('Centered');
+    case 'scaled':
+        return _('Scaled');
+    case 'stretched':
+        return _('Stretched');
+    case 'zoom':
+        return _('Zoom');
+    case 'spanned':
+        return _('Spanned');
+    default:
+        return value;
+    }
+}
 
 function expandPath(path) {
     if (!path || path.length === 0)
@@ -527,8 +551,8 @@ class Indicator extends PanelMenu.Button {
         // View (picture option) chooser.
         this._scalingItems = new Map();
         this._scalingMenu = new PopupMenu.PopupSubMenuMenuItem('', true);
-        for (const [value, label] of SCALING_OPTIONS) {
-            const item = new PopupMenu.PopupMenuItem(label);
+        for (const value of SCALING_OPTIONS) {
+            const item = new PopupMenu.PopupMenuItem(scalingLabel(value));
             item.connect('activate', () => settings.set_string('picture-options', value));
             this._scalingItems.set(value, item);
             this._scalingMenu.menu.addMenuItem(item);
@@ -539,7 +563,7 @@ class Indicator extends PanelMenu.Button {
         this._intervalItems = new Map();
         this._intervalMenu = new PopupMenu.PopupSubMenuMenuItem('', true);
         for (const [seconds, label] of INTERVAL_OPTIONS) {
-            const item = new PopupMenu.PopupMenuItem(label);
+            const item = new PopupMenu.PopupMenuItem(_(label));
             item.connect('activate', () => settings.set_uint('interval-seconds', seconds));
             this._intervalItems.set(seconds, item);
             this._intervalMenu.menu.addMenuItem(item);
@@ -647,11 +671,11 @@ class Indicator extends PanelMenu.Button {
         const slideshow = this._extension.slideshow;
 
         const options = settings.get_string('picture-options');
-        for (const [value, label] of SCALING_OPTIONS) {
+        for (const value of SCALING_OPTIONS) {
             this._scalingItems.get(value)
                 .setOrnament(value === options ? PopupMenu.Ornament.DOT : PopupMenu.Ornament.NONE);
             if (value === options)
-                this._scalingMenu.label.text = _('View: %s').format(label);
+                this._scalingMenu.label.text = _('View: %s').format(scalingLabel(value));
         }
 
         const interval = settings.get_uint('interval-seconds');
@@ -661,7 +685,7 @@ class Indicator extends PanelMenu.Button {
             this._intervalItems.get(seconds)
                 .setOrnament(active ? PopupMenu.Ornament.DOT : PopupMenu.Ornament.NONE);
             if (active)
-                intervalLabel = label;
+                intervalLabel = _(label);
         }
         this._intervalMenu.label.text = _('Every: %s').format(intervalLabel);
 
