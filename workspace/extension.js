@@ -330,19 +330,16 @@ class WallpaperPreview extends St.Widget {
             return;
         }
         const token = ++this._loadToken;
-        const file = Gio.File.new_for_path(path);
-        GdkPixbuf.Pixbuf.new_from_file_at_size_async(file, PREVIEW_SIZE * 2, PREVIEW_SIZE * 2, null,
-            (source, result) => {
-                if (token !== this._loadToken)
-                    return;
-                try {
-                    const pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size_async_finish(result);
-                    this.content = pixbufToContent(pixbuf);
-                    this.content_gravity = imageGravity(this._slideshow.pictureOptions);
-                } catch (error) {
-                    console.warn(`[BG Slider] preview failed: ${error.message}`);
-                }
-            });
+        try {
+            const pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(
+                path, PREVIEW_SIZE * 2, PREVIEW_SIZE * 2);
+            if (token !== this._loadToken)
+                return;
+            this.content = pixbufToContent(pixbuf);
+            this.content_gravity = imageGravity(this._slideshow.pictureOptions);
+        } catch (error) {
+            console.warn(`[BG Slider] preview failed: ${error.message}`);
+        }
     }
 });
 
@@ -379,7 +376,7 @@ class AboutAvatar extends St.Widget {
                     this._fallbackAvatar();
                     return;
                 }
-                const stream = Gio.MemoryStream.new_from_bytes(bytes);
+                const stream = Gio.MemoryInputStream.new_from_bytes(bytes);
                 GdkPixbuf.Pixbuf.new_from_stream_async(stream, null, (pixbufSource, pixbufResult) => {
                     try {
                         const pixbuf = GdkPixbuf.Pixbuf.new_from_stream_async_finish(pixbufResult);
@@ -695,3 +692,4 @@ export default class GnomeBGSliderExtension extends Extension {
         }
     }
 }
+
