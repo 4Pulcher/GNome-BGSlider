@@ -7,7 +7,21 @@ latest installable bundle is published as a GitHub
 [`gnome-bgslider@4pulcher.zip`](https://github.com/4Pulcher/GNome-BGSlider/releases/latest/download/gnome-bgslider@4pulcher.zip),
 built automatically by CI from `workspace/`.
 
-## 2.0.1 — Bug-fix release (current)
+## 2.1.0 — Reworked menus (current)
+
+- **Download:** [`gnome-bgslider@4pulcher.zip`](https://github.com/4Pulcher/GNome-BGSlider/releases/latest/download/gnome-bgslider@4pulcher.zip)
+- **Documentation:** [`versions/2.0/README.md`](versions/2.0/README.md)
+- **Type:** native GNOME Shell extension (`gnome-bgslider@4pulcher`)
+- **New:**
+  - Left-click popup: preview of the **next wallpaper**, **View**
+    chooser (picture options), **Interval** chooser (10 s – 1 day), and
+    previous / normal-random / next / preferences buttons.
+  - Right-click context menu: profile chooser, preferences,
+    stop / continue slideshow, and disable extension.
+  - In shuffle mode the "Next" button switches to the wallpaper that
+    was shown in the preview.
+
+## 2.0.1 — Bug-fix release
 
 - **Download:** [`gnome-bgslider@4pulcher.zip`](https://github.com/4Pulcher/GNome-BGSlider/releases/latest/download/gnome-bgslider@4pulcher.zip)
 - **Documentation:** [`versions/2.0/README.md`](versions/2.0/README.md)

@@ -7,7 +7,7 @@ A timed wallpaper slideshow for the GNOME desktop, rewritten as a native
 
 | Version | Download | Documentation |
 | --- | --- | --- |
-| **2.0.1** (current, GNOME 45–49) | [gnome-bgslider@4pulcher.zip](https://github.com/4Pulcher/GNome-BGSlider/releases/latest/download/gnome-bgslider@4pulcher.zip) | [versions/2.0/README.md](versions/2.0/README.md) |
+| **2.1.0** (current, GNOME 45–49) | [gnome-bgslider@4pulcher.zip](https://github.com/4Pulcher/GNome-BGSlider/releases/latest/download/gnome-bgslider@4pulcher.zip) | [versions/2.0/README.md](versions/2.0/README.md) |
 | 1.0 (legacy bash script) | [versions/1.0/GNomeBGSlider.sh](versions/1.0/GNomeBGSlider.sh) | [versions/1.0/README.md](versions/1.0/README.md) |
 
 The zip is built automatically by GitHub Actions from `workspace/` on
@@ -35,17 +35,25 @@ full release history.
 ## Features
 
 - **Dedicated top-bar icon** (wallpaper symbol) in the panel.
-- **Click the icon** (left or right) — opens the **popup**:
+- **Left-click the icon** — opens the **popup**:
+  - **Preview frame (256×256)** of the **next wallpaper** (the one the
+    slideshow will switch to next), scaled according to the active
+    picture option.
+  - **View chooser**: sub-menu with all GNOME picture options
+    (`none`, `wallpaper`, `centered`, `scaled`, `stretched`, `zoom`,
+    `spanned`).
+  - **Interval chooser**: sub-menu with common switch intervals,
+    from 10 seconds to 1 day.
+  - **Buttons**: previous, normal/random toggle, next, and
+    preferences.
+  - **About** button.
+- **Right-click the icon** — opens the **context menu**:
   - **Profile chooser**: dynamic profiles, defaults `User`
     (`~/Pictures/Wallpapers`) and `System` (`/usr/share/backgrounds`),
     shown with a radio dot.
-  - **Preview frame (256×256)** of the current wallpaper, scaled
-    according to the active picture option.
-  - **Scaling method**: sub-menu with all GNOME picture options
-    (`none`, `wallpaper`, `centered`, `scaled`, `stretched`, `zoom`,
-    `spanned`) — the preview updates instantly.
-  - **Buttons**: previous, randomize, next, and pause/resume.
-  - **Buttons**: `Settings…` and `About`.
+  - **Preferences**.
+  - **Stop / Continue** the slideshow timer.
+  - **Disable BG Slider** (turn the extension off).
 - **Settings GUI** (GTK4 / libadwaita window):
   - **Profiles frame**:
     - Profile selector
@@ -113,10 +121,11 @@ gnome-extensions install ../gnome-bgslider@4pulcher.zip --force
 
 | Action | Result |
 | --- | --- |
-| Click panel icon (left or right) | Popup: profile chooser, 256×256 preview, scaling selector, previous / randomize / next / pause, Settings…, About |
+| Left-click panel icon | Popup: next-wallpaper preview, View chooser, Interval chooser, previous / normal-random / next / preferences buttons, About |
+| Right-click panel icon | Context menu: profile chooser, Preferences, Stop / Continue, Disable BG Slider |
+| Normal/Random button | Toggles between alphabetical order and shuffled order; in shuffle mode the popup shows which wallpaper comes next |
 | Choose a profile | Switches to that profile's wallpaper folders |
-| Scaling sub-menu | Sets the picture option; preview updates instantly |
-| Settings… | Profiles, folders, scaling, random, interval, subfolders |
+| Interval sub-menu | Sets the switch interval (10 s – 1 day); custom values can be set in Preferences |
 | Disable the extension | Timer stops; your previous wallpaper is restored (configurable) |
 
 Supported image types: `jpg`, `jpeg`, `png`, `gif`, `webp`, `bmp`, `svg`,

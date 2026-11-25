@@ -1,7 +1,7 @@
 {
   "uuid": "gnome-bgslider@4pulcher",
   "name": "BG Slider",
-  "description": "Timed wallpaper slideshow for GNOME. Picks random or sequential images from a folder of your choice and switches the desktop background at a configurable interval, with a top-bar indicator, quick controls, a main menu dialog, settings and an about dialog.",
+  "description": "Timed wallpaper slideshow for GNOME. Picks random or sequential images from a folder of your choice and switches the desktop background at a configurable interval, with a top-bar indicator, a one-click popup with next-wallpaper preview, view and interval choosers, quick controls, and a right-click menu with profile chooser, pause/resume and disable.",
   "shell-version": [
     "45",
     "46",
@@ -10,8 +10,8 @@
     "49"
   ],
   "url": "https://github.com/4Pulcher/Gnome-BGSlider",
-  "version": 21,
-  "version-name": "2.0.1",
+  "version": 22,
+  "version-name": "2.1.0",
   "session-modes": [
     "user"
   ],
