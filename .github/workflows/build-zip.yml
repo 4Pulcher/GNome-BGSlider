@@ -1,0 +1,62 @@
+name: Build and release extension zip
+
+on:
+  push:
+    branches: [main]
+    paths: ['workspace/**', '.github/workflows/build-zip.yml']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      TAG: v2.0.1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libglib2.0-bin zip
+
+      - name: Syntax check
+        run: |
+          node --check workspace/extension.js
+          node --check workspace/prefs.js
+          python3 -c 'import json; json.load(open("workspace/metadata.json"))'
+          glib-compile-schemas --strict workspace/schemas/
+
+      - name: Build zip
+        run: |
+          mkdir -p build/pkg
+          cp workspace/extension.js workspace/prefs.js workspace/metadata.json workspace/install.sh build/pkg/
+          cp -r workspace/schemas build/pkg/
+          glib-compile-schemas build/pkg/schemas/
+          (cd build/pkg && zip -r -q ../gnome-bgslider@4pulcher.zip .)
+          chmod +x build/pkg/install.sh
+          unzip -l build/gnome-bgslider@4pulcher.zip
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gnome-bgslider@4pulcher
+          path: build/gnome-bgslider@4pulcher.zip
+
+      - name: Attach to release
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$TAG" --title "BG Slider 2.0.1" \
+            --notes "Bug-fix release (2.0.1).
+
+          - Fix fatal TypeError on enable: use the synchronous GdkPixbuf.Pixbuf.new_from_file_at_size instead of the non-existent async variant.
+          - Fix About avatar loading: Gio.MemoryInputStream instead of Gio.MemoryStream.
+          - Settings window now works on GNOME 45/46 too (Adw.SwitchRow replaced with Adw.ActionRow + Gtk.Switch)." \
+            || gh release edit "$TAG" --latest
+          gh release upload "$TAG" build/gnome-bgslider@4pulcher.zip --clobber

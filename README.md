@@ -7,16 +7,18 @@ A timed wallpaper slideshow for the GNOME desktop, rewritten as a native
 
 | Version | Download | Documentation |
 | --- | --- | --- |
-| **2.0** (current, GNOME 45–49) | [gnome-bgslider@4pulcher.zip](gnome-bgslider@4pulcher.zip) | [versions/2.0/README.md](versions/2.0/README.md) |
+| **2.0.1** (current, GNOME 45–49) | [gnome-bgslider@4pulcher.zip](https://github.com/4Pulcher/GNome-BGSlider/releases/latest/download/gnome-bgslider@4pulcher.zip) | [versions/2.0/README.md](versions/2.0/README.md) |
 | 1.0 (legacy bash script) | [versions/1.0/GNomeBGSlider.sh](versions/1.0/GNomeBGSlider.sh) | [versions/1.0/README.md](versions/1.0/README.md) |
 
-Both zips contain an `install.sh`. See [VERSIONS.md](VERSIONS.md) for the
+The zip is built automatically by GitHub Actions from `workspace/` on
+every push to `main` and published as a [release asset](https://github.com/4Pulcher/GNome-BGSlider/releases).
+It contains an `install.sh`. See [VERSIONS.md](VERSIONS.md) for the
 full release history.
 
 ## Repository layout
 
 ```
-├── gnome-bgslider@4pulcher.zip   # ready-to-install extension bundle
+├── .github/workflows/build-zip.yml  # CI: builds the zip and publishes the release
 ├── workspace/                    # all sources
 │   ├── extension.js              # indicator, popup, About, slideshow engine
 │   ├── prefs.js                  # GTK4/libadwaita settings window
@@ -25,7 +27,7 @@ full release history.
 │   └── schemas/                  # GSettings schema
 ├── versions/
 │   ├── 1.0/                      # legacy bash script + install.sh + README
-│   └── 2.0/                      # extension zip + README
+│   └── 2.0/                      # extension README
 ├── VERSIONS.md                   # release history
 └── LICENSE                       # GPL-3.0
 ```
@@ -64,9 +66,13 @@ full release history.
 
 ### From the zip (recommended)
 
+Download the latest
+[gnome-bgslider@4pulcher.zip](https://github.com/4Pulcher/GNome-BGSlider/releases/latest/download/gnome-bgslider@4pulcher.zip)
+from the releases page, then:
+
 ```bash
-unzip gnome-bgslider@4pulcher.zip
-cd gnome-bgslider@4pulcher
+unzip gnome-bgslider@4pulcher.zip -d bg-slider
+cd bg-slider
 ./install.sh
 ```
 
@@ -84,7 +90,7 @@ The extension compiles its GSettings schema automatically on first run.
 ### From source
 
 ```bash
-git clone https://github.com/4Pulcher/Gnome-BGSlider.git
+git clone https://github.com/4Pulcher/GNome-BGSlider.git
 cd Gnome-BGSlider
 glib-compile-schemas workspace/schemas/
 mkdir -p ~/.local/share/gnome-shell/extensions/gnome-bgslider@4pulcher
