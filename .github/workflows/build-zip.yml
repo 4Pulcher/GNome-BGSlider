@@ -15,7 +15,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      TAG: v2.0.1
+      TAG: v2.1.0
     steps:
       - uses: actions/checkout@v4
 
@@ -52,11 +52,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "$TAG" --title "BG Slider 2.0.1" \
-            --notes "Bug-fix release (2.0.1).
+          gh release create "$TAG" --title "BG Slider 2.1.0" \
+            --notes "Wallpaper slideshow release (2.1.0).
 
-          - Fix fatal TypeError on enable: use the synchronous GdkPixbuf.Pixbuf.new_from_file_at_size instead of the non-existent async variant.
-          - Fix About avatar loading: Gio.MemoryInputStream instead of Gio.MemoryStream.
-          - Settings window now works on GNOME 45/46 too (Adw.SwitchRow replaced with Adw.ActionRow + Gtk.Switch)." \
+          New menus:
+          - Left click on the panel icon: popup with a preview of the NEXT wallpaper, a View chooser (none/centered/scaled/stretched/zoom/spanned/tile), an Interval chooser (10 s to 1 day), and Previous / Normal-Random / Next / Preferences buttons.
+          - Right click on the panel icon: profile chooser, Preferences, Stop/Continue slideshow, and Disable BG Slider.
+
+          Earlier fixes (2.0.1) included: fatal TypeError on enable (GdkPixbuf API), About avatar loading, Settings window on GNOME 45/46." \
             || gh release edit "$TAG" --latest
           gh release upload "$TAG" build/gnome-bgslider@4pulcher.zip --clobber

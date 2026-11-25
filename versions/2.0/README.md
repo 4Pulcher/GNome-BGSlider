@@ -1,4 +1,4 @@
-# BG Slider 2.0 — GNOME Shell extension
+# BG Slider 2.1 — GNOME Shell extension
 
 Native GNOME Shell extension (`gnome-bgslider@4pulcher`) for GNOME
 **45, 46, 47, 48 and 49**. Timed wallpaper slideshow with a top-bar popup,
@@ -33,11 +33,14 @@ available; otherwise the extension compiles it itself on first run.
 
 ## What it does
 
-- Top-bar icon; clicking it opens a popup with a profile chooser
-  (`User` / `System` by default), a 256×256 preview of the current
-  wallpaper, a scaling-method sub-menu, and previous / randomize / next /
-  pause buttons plus Settings… and About.
-- Profiles are named lists of wallpaper folders, managed in Settings
+- **Left-click** the top-bar icon: popup with a **preview of the next
+  wallpaper**, a **View** chooser (scaling method), an **Interval**
+  chooser, and previous / normal-random / next / preferences buttons,
+  plus About.
+- **Right-click** the top-bar icon: context menu with the **profile
+  chooser** (`User` / `System` by default), Preferences, Stop/Continue
+  slideshow, and Disable BG Slider.
+- Profiles are named lists of wallpaper folders, managed in Preferences
   (Add/Modify/Remove Folder, New/Delete Profile).
 - About dialog shows the GitHub profile photo, version, author and link.
 

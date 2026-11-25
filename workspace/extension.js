@@ -25,6 +25,19 @@ const PREVIEW_SIZE = 256;
 const SLIDESHOW_CHANGED = 'changed';
 const SLIDESHOW_ERROR = 'error';
 
+const INTERVAL_OPTIONS = [
+    [10, _('10 seconds')],
+    [30, _('30 seconds')],
+    [60, _('1 minute')],
+    [300, _('5 minutes')],
+    [900, _('15 minutes')],
+    [1800, _('30 minutes')],
+    [3600, _('1 hour')],
+    [10800, _('3 hours')],
+    [43200, _('12 hours')],
+    [86400, _('1 day')],
+];
+
 const SCALING_OPTIONS = [
     ['none', _('None')],
     ['wallpaper', _('Wallpaper (tile)')],
@@ -84,6 +97,7 @@ const Slideshow = GObject.registerClass({
         this._background = new Gio.Settings({schema_id: BACKGROUND_SCHEMA});
         this._files = [];
         this._index = -1;
+        this._nextIndex = -1;
         this._paused = false;
         this._timeoutId = 0;
         this._originalUri = this._background.get_string('picture-uri');
@@ -106,6 +120,14 @@ const Slideshow = GObject.registerClass({
 
     get currentPath() {
         return this._index >= 0 ? this._files[this._index] : null;
+    }
+
+    get shuffle() {
+        return this._settings.get_boolean('shuffle');
+    }
+
+    get nextPath() {
+        return this._nextIndex >= 0 ? this._files[this._nextIndex] : null;
     }
 
     get profile() {
@@ -178,6 +200,7 @@ const Slideshow = GObject.registerClass({
         }
         if (this._index >= files.length)
             this._index = files.length - 1;
+        this._updateNextIndex();
         this.emit(SLIDESHOW_CHANGED);
     }
 
@@ -192,13 +215,14 @@ const Slideshow = GObject.registerClass({
     randomize() {
         if (this._files.length === 0)
             return;
-        let next = this._index;
-        if (this._files.length > 1) {
-            while (next === this._index)
-                next = Math.floor(Math.random() * this._files.length);
-        }
-        this._index = next;
+        this._index = Math.floor(Math.random() * this._files.length);
         this._applyCurrent();
+        this._updateNextIndex();
+    }
+
+    updateUpcoming() {
+        this._updateNextIndex();
+        this.emit(SLIDESHOW_CHANGED);
     }
 
     setPaused(paused) {
@@ -225,12 +249,32 @@ const Slideshow = GObject.registerClass({
         if (this._files.length === 0)
             return;
 
-        if (this._settings.get_boolean('shuffle') && this._files.length > 1) {
-            this.randomize();
+        if (direction > 0 && this.shuffle && this._files.length > 1) {
+            // In shuffle mode, step to the image that was announced as upcoming.
+            this._index = this._nextIndex;
+            this._applyCurrent();
+            this._updateNextIndex();
             return;
         }
         this._index = (this._index + direction + this._files.length) % this._files.length;
         this._applyCurrent();
+        this._updateNextIndex();
+    }
+
+    _updateNextIndex() {
+        if (this._files.length === 0) {
+            this._nextIndex = -1;
+            return;
+        }
+        if (this.shuffle && this._files.length > 1) {
+            let next;
+            do {
+                next = Math.floor(Math.random() * this._files.length);
+            } while (next === this._index);
+            this._nextIndex = next;
+        } else {
+            this._nextIndex = (this._index + 1) % this._files.length;
+        }
     }
 
     _applyCurrent() {
@@ -321,7 +365,7 @@ class WallpaperPreview extends St.Widget {
     }
 
     update() {
-        const path = this._slideshow.currentPath;
+        const path = this._slideshow.nextPath;
         if (path === this._path)
             return;
         this._path = path;
@@ -421,30 +465,66 @@ class Indicator extends PanelMenu.Button {
             if (open)
                 this._sync();
         });
+
+        // Separate menu for right-clicks.
+        this._contextMenu = new PopupMenu.PopupMenu(this, 0.0, St.Side.TOP, 0);
+        Main.layout.uiGroup.add_child(this._contextMenu);
+        Main.panel.menuManager.addMenu(this._contextMenu);
+        this._contextMenu.connect('open-state-changed', (_, open) => {
+            if (open)
+                this._syncContextMenu();
+        });
+
         this._extension.slideshow.connectObject(SLIDESHOW_CHANGED, () => this._sync(), this);
 
         this._buildMenu();
+        this._buildContextMenu();
         this._sync();
+    }
+
+    vfunc_event(event) {
+        if (event.type() === Clutter.EventType.BUTTON_PRESS &&
+            event.get_button() === 3) {
+            this._contextMenu.toggle();
+            return Clutter.EVENT_STOP;
+        }
+        return super.vfunc_event(event);
+    }
+
+    vfunc_destroy() {
+        this._contextMenu?.destroy();
+        this._contextMenu = null;
+        super.vfunc_destroy();
     }
 
     _buildMenu() {
         const settings = this._extension.settings;
         const slideshow = this._extension.slideshow;
 
-        this._profileSection = new PopupMenu.PopupMenuSection();
-        this.menu.addMenuItem(this._profileSection);
-
-        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-
+        // Preview of the next wallpaper.
         const previewItem = new PopupMenu.PopupBaseMenuItem({
             reactive: false,
             can_focus: false,
             style: 'padding: 4px 12px;',
         });
+        const previewBox = new St.BoxLayout({
+            vertical: true,
+            x_align: Clutter.ActorAlign.CENTER,
+            style: 'spacing: 6px;',
+        });
+        previewBox.add_child(new St.Label({
+            text: _('Next wallpaper'),
+            x_align: Clutter.ActorAlign.CENTER,
+            style: 'font-weight: bold;',
+        }));
         this._preview = new WallpaperPreview(slideshow);
-        previewItem.add_child(this._preview);
+        previewBox.add_child(this._preview);
+        previewItem.add_child(previewBox);
         this.menu.addMenuItem(previewItem);
 
+        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        // View (picture option) chooser.
         this._scalingItems = new Map();
         this._scalingMenu = new PopupMenu.PopupSubMenuMenuItem('', true);
         for (const [value, label] of SCALING_OPTIONS) {
@@ -455,8 +535,20 @@ class Indicator extends PanelMenu.Button {
         }
         this.menu.addMenuItem(this._scalingMenu);
 
+        // Interval chooser.
+        this._intervalItems = new Map();
+        this._intervalMenu = new PopupMenu.PopupSubMenuMenuItem('', true);
+        for (const [seconds, label] of INTERVAL_OPTIONS) {
+            const item = new PopupMenu.PopupMenuItem(label);
+            item.connect('activate', () => settings.set_uint('interval-seconds', seconds));
+            this._intervalItems.set(seconds, item);
+            this._intervalMenu.menu.addMenuItem(item);
+        }
+        this.menu.addMenuItem(this._intervalMenu);
+
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
+        // Controls: previous, normal/random, next, preferences.
         const controlsItem = new PopupMenu.PopupBaseMenuItem({
             reactive: false,
             can_focus: false,
@@ -467,14 +559,21 @@ class Indicator extends PanelMenu.Button {
             x_align: Clutter.ActorAlign.CENTER,
             style: 'spacing: 12px;',
         });
-        this._previousButton = this._iconButton('media-skip-backward-symbolic', () => slideshow.previous());
-        this._randomButton = this._iconButton('media-playlist-shuffle-symbolic', () => slideshow.randomize());
-        this._nextButton = this._iconButton('media-skip-forward-symbolic', () => slideshow.next());
-        this._pauseButton = this._iconButton('media-playback-pause-symbolic', () => slideshow.togglePaused());
+        this._previousButton = this._iconButton('media-skip-backward-symbolic',
+            () => slideshow.previous());
+        this._shuffleButton = this._iconButton('media-playlist-shuffle-symbolic', () => {
+            settings.set_boolean('shuffle', !settings.get_boolean('shuffle'));
+        });
+        this._nextButton = this._iconButton('media-skip-forward-symbolic',
+            () => slideshow.next());
+        this._prefsButton = this._iconButton('preferences-system-symbolic', () => {
+            this.menu.close();
+            this._extension.openPrefs();
+        });
         controls.add_child(this._previousButton);
-        controls.add_child(this._randomButton);
+        controls.add_child(this._shuffleButton);
         controls.add_child(this._nextButton);
-        controls.add_child(this._pauseButton);
+        controls.add_child(this._prefsButton);
         controlsItem.add_child(controls);
         this.menu.addMenuItem(controlsItem);
 
@@ -488,15 +587,6 @@ class Indicator extends PanelMenu.Button {
             x_align: Clutter.ActorAlign.CENTER,
             style: 'spacing: 12px;',
         });
-        const settingsButton = new St.Button({
-            label: _('Settings\u2026'),
-            style_class: 'button',
-            can_focus: true,
-        });
-        settingsButton.connect('clicked', () => {
-            this.menu.close();
-            this._extension.openPrefs();
-        });
         const aboutButton = new St.Button({
             label: _('About'),
             style_class: 'button',
@@ -506,10 +596,40 @@ class Indicator extends PanelMenu.Button {
             this.menu.close();
             this._extension.showAboutDialog();
         });
-        actions.add_child(settingsButton);
         actions.add_child(aboutButton);
         actionsItem.add_child(actions);
         this.menu.addMenuItem(actionsItem);
+    }
+
+    _buildContextMenu() {
+        const slideshow = this._extension.slideshow;
+
+        this._profileSection = new PopupMenu.PopupMenuSection();
+        this._contextMenu.addMenuItem(this._profileSection);
+
+        this._contextMenu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        this._profilePrefsItem = new PopupMenu.PopupMenuItem(_('Preferences'));
+        this._profilePrefsItem.connect('activate', () => {
+            this._contextMenu.close();
+            this._extension.openPrefs();
+        });
+        this._contextMenu.addMenuItem(this._profilePrefsItem);
+
+        this._togglePauseItem = new PopupMenu.PopupMenuItem('');
+        this._togglePauseItem.connect('activate', () => slideshow.togglePaused());
+        this._contextMenu.addMenuItem(this._togglePauseItem);
+
+        const disableItem = new PopupMenu.PopupMenuItem(_('Disable BG Slider'));
+        disableItem.connect('activate', () => {
+            this._contextMenu.close();
+            try {
+                Main.extensionManager.disableExtension(this._extension.uuid);
+            } catch (error) {
+                console.warn(`[BG Slider] could not disable extension: ${error.message}`);
+            }
+        });
+        this._contextMenu.addMenuItem(disableItem);
     }
 
     _iconButton(iconName, callback) {
@@ -525,6 +645,34 @@ class Indicator extends PanelMenu.Button {
     _sync() {
         const settings = this._extension.settings;
         const slideshow = this._extension.slideshow;
+
+        const options = settings.get_string('picture-options');
+        for (const [value, label] of SCALING_OPTIONS) {
+            this._scalingItems.get(value)
+                .setOrnament(value === options ? PopupMenu.Ornament.DOT : PopupMenu.Ornament.NONE);
+            if (value === options)
+                this._scalingMenu.label.text = _('View: %s').format(label);
+        }
+
+        const interval = settings.get_uint('interval-seconds');
+        let intervalLabel = _('%d seconds').format(interval);
+        for (const [seconds, label] of INTERVAL_OPTIONS) {
+            const active = seconds === interval;
+            this._intervalItems.get(seconds)
+                .setOrnament(active ? PopupMenu.Ornament.DOT : PopupMenu.Ornament.NONE);
+            if (active)
+                intervalLabel = label;
+        }
+        this._intervalMenu.label.text = _('Every: %s').format(intervalLabel);
+
+        this._shuffleButton.child.icon_name = slideshow.shuffle
+            ? 'media-playlist-shuffle-symbolic'
+            : 'view-list-symbolic';
+    }
+
+    _syncContextMenu() {
+        const settings = this._extension.settings;
+        const slideshow = this._extension.slideshow;
         const activeProfile = settings.get_string('active-profile');
 
         this._profileSection.removeAll();
@@ -537,17 +685,9 @@ class Indicator extends PanelMenu.Button {
             this._profileSection.addMenuItem(item);
         }
 
-        const options = settings.get_string('picture-options');
-        for (const [value, label] of SCALING_OPTIONS) {
-            this._scalingItems.get(value)
-                .setOrnament(value === options ? PopupMenu.Ornament.DOT : PopupMenu.Ornament.NONE);
-            if (value === options)
-                this._scalingMenu.label.text = _('Scaling: %s').format(label);
-        }
-
-        this._pauseButton.child.icon_name = slideshow.paused
-            ? 'media-playback-start-symbolic'
-            : 'media-playback-pause-symbolic';
+        this._togglePauseItem.label.text = slideshow.paused
+            ? _('Continue slideshow')
+            : _('Stop slideshow');
     }
 });
 
@@ -624,6 +764,7 @@ export default class GnomeBGSliderExtension extends Extension {
             this._settings.connect('changed::recursive', () => this._onSourceChanged()),
             this._settings.connect('changed::interval-seconds', () => this._slideshow._restartTimer()),
             this._settings.connect('changed::picture-options', () => this._slideshow.applyOptions()),
+            this._settings.connect('changed::shuffle', () => this._slideshow.updateUpcoming()),
         ];
 
         this._indicator = new Indicator(this);
